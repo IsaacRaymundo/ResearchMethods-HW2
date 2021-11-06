@@ -1,0 +1,68 @@
+---
+title: "IR_HW2"
+output: html_document
+---
+
+
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
+#install.packages("sjPlot")
+library(sjPlot)
+#install.packages("ggplot2")
+library(ggplot2)
+#install.packages("tidyverse")
+library(tidyverse)
+#install.packages("Rmisc")
+library(Rmisc)
+
+
+
+```
+
+**Load data**
+```{r}
+HW2 <- read.csv("https://raw.githubusercontent.com/IsaacRaymundo/ResearchMethods-HW2/main/vaping-ban-panel.csv")
+#create variable that groups states that never had the ban and states that got the ban for parallel trends
+x <-  summarySE(HW2,measurevar = "Vaping.Ban",groupvars = "State.Id")
+HW2$Ban <- ifelse(x$Vaping.Ban>0,1,0)
+HW2$Ban <- as.factor(HW2$Ban)
+
+
+
+```
+
+**Run Regression to test parallel trends**
+```{r}
+lm1 <- lm(Lung.Hospitalizations~Year*Ban, data = HW2[HW2$Year<2021,]);summary(lm1)
+```
+**Create table for parallel trends**
+```{r}
+tab_model(lm1,title = "Table 1: Parallel Trends Test of Hospitalization Rates",pred.labels = c("(Intercept)","Year","Vaping Ban", " Year x Vaping Ban"),dv.labels = " ", collapse.se = T,show.ci = F,CSS = list(css.depvarhead = "no-italics; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;border-top: double;",css.thead= "no-italics; text-align:center; font-style:normal; font-weight:bold; padding:0.0cm;", css.caption = "text-align:center;font-weight:bold;padding-bottom:0.1cm;" ),string.pred = "Variable",p.style = "star")
+```
+**Make the canoncial DnD line graph**
+```{r, warning=FALSE}
+ggplot(data= HW2, mapping = aes(x = Year,y = Lung.Hospitalizations))+
+  stat_summary(geom="line",aes(linetype=Ban))+
+  geom_vline(xintercept = 2021)+
+  ylab("Lung Hospitalizations")+
+  scale_x_continuous(expand = c(0, 0))+
+  scale_linetype_discrete(name = "Anti-vaping Law",labels= c("No Ban","Ban"))+
+  theme_classic()
+```
+
+**Regression to estimte the treatment effect of the laws**
+```{r}
+lm2 <- lm(Lung.Hospitalizations~Vaping.Ban, data = HW2);summary(lm2)
+#include fixed effects
+lm3 <- lm(Lung.Hospitalizations~Vaping.Ban+factor(Year)+factor(State.Id), data = HW2);summary(lm3)
+
+
+```
+**Make table of regressions with fixed effects**
+```{r}
+
+tab_model(lm2,lm3,title = "Table 2:Effect of Vaping Ban on Lung Hospitalizations",pred.labels = c("(Intercept)","Vaping Ban"),terms = c("(Intercept)","Vaping.Ban"),dv.labels = c("Model 1", "Model 2") ,collapse.se = T,show.ci = F,CSS = list(css.depvarhead = "no-italics;text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;border-top: double;",css.thead= "no-italics; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;", css.caption = "text-align:center;font-weight:bold;padding-bottom:0.1cm;" ),string.pred = "Variable",p.style = "star")
+
+#code to show table with all fixed effects displayed
+#tab_model(lm2,lm3,title = "Table 2:Effect of Vaping Ban on Lung Hospitalizations",pred.labels = c("(Intercept)","Vaping Ban","Year 2011","Year 2012", "Year 2013", "Year 2014", "Year 2015", "Year 2016", "Year 2017","Year 2018", "Year 2019", "Year 2020", "Year 2021","Year 2022", "Year 2023", "Year 2024", "Year 2025", "Year 2026", "Year 2027","Year 2028", "Year 2029", "Year 2320", "State 2", "State 3", "State 4", "State 5", "State 6", "State 7", "State 8", "State 9", "State 10","State 11", "State 12", "State 13", "State 14", "State 15", "State 16", "State 17", "State 18", "State 19", "State 20","State 21", "State 22", "State 23", "State 24", "State 25", "State 26", "State 27", "State 28", "State 29", "State 30","State 31", "State 32", "State 33", "State 34", "State 35", "State 36", "State 37", "State 38", "State 39", "State 40","State 41", "State 42", "State 43", "State 44", "State 45", "State 46", "State 47", "State 48", "State 49", "State 50"),dv.labels = c("", "") ,collapse.se = T,show.ci = F,CSS = list(css.depvarhead = "no-italics;text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;border-top: double;",css.thead= "no-italics; text-align:center; font-style:normal; font-weight:bold; padding:0.0cm;", css.caption = "text-align:center;font-weight:bold;padding-bottom:0.1cm;" ),string.pred = "Variable",p.style = "star")
+
+```
